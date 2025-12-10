@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transferring... - Spotify Migration</title>
+    <link rel="icon" href="https://open.spotifycdn.com/cdn/images/favicon.0f31d2ea.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Fira+Code&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Fira+Code&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <h1>🚀 Transfer in Progress...</h1>
+
+    <div class="terminal-window">
+        <div class="terminal-header">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+        </div>
+        <div id="log"></div>
+    </div>
+
+    <a href="/" class="btn" id="homeBtn">Back to Dashboard</a>
+
+    <script>
+        const logDiv = document.getElementById('log');
+        const homeBtn = document.getElementById('homeBtn');
+        
+        // Append query params to preserve selection context if needed, though stream handles it
+        const evtSource = new EventSource("/stream_transfer" + window.location.search);
+        
+        evtSource.onmessage = function(event) {
+            if (event.data === "DONE") {
+                evtSource.close();
+                appendLog("--- TRANSFER COMPLETE ---", "#1DB954");
+                homeBtn.style.display = "inline-block";
+            } else {
+                appendLog(event.data);
+            }
+        };
+
+        evtSource.onerror = function(err) {
+            // Sometimes closing produces an error event, ignore if done
+            if(homeBtn.style.display !== "inline-block") {
+                appendLog("Connection lost or finished.", "#ff5555");
+                evtSource.close();
+                homeBtn.style.display = "inline-block";
+            }
+        };
+
+        function appendLog(text, color = null) {
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            line.textContent = text; // Secure text content
+            if (color) line.style.color = color;
+            
+            // Highlight specific keywords for better UX
+            if (text.includes("Error")) line.style.color = "#ff5555";
+            if (text.includes("Success") || text.includes("Finished")) line.style.color = "#1DB954";
+            if (text.includes("Processing")) line.style.color = "#ffbd2e";
+
+            logDiv.appendChild(line);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>

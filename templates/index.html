@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Migration Tool</title>
+    <link rel="icon" href="https://open.spotifycdn.com/cdn/images/favicon.0f31d2ea.ico">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="home">
+    <div class="container">
+        <h1>Spotify Migration</h1>
+        
+        <div class="cards-wrapper">
+            <!-- Source Card -->
+            <div class="card {% if source %}connected{% endif %}">
+                <h3>Source Account</h3>
+                <div class="avatar-container">
+                    {% if source %}
+                        <img src="{{ source.images[0].url if source.images else 'https://misc.scdn.co/liked-songs/liked-songs-300.png' }}" 
+                             onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png';" 
+                             class="avatar" alt="Avatar">
+                    {% else %}
+                        <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" style="filter: grayscale(100%); opacity: 0.3;" class="avatar" alt="Placeholder">
+                    {% endif %}
+                </div>
+                
+                {% if source %}
+                    <div class="user-name">{{ source.display_name }}</div>
+                    <div class="status-badge connected">Connected</div>
+                {% else %}
+                    <div class="user-name" style="color:#555">Not Connected</div>
+                    <a href="/login/source" class="btn">Connect Source</a>
+                {% endif %}
+            </div>
+
+            <div class="arrow">➜</div>
+
+            <!-- Destination Card -->
+            <div class="card {% if dest %}connected{% endif %}">
+                <h3>Destination Account</h3>
+                <div class="avatar-container">
+                    {% if dest %}
+                        <img src="{{ dest.images[0].url if dest.images else 'https://misc.scdn.co/liked-songs/liked-songs-300.png' }}" 
+                             onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png';" 
+                             class="avatar" alt="Avatar">
+                    {% else %}
+                        <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" style="filter: grayscale(100%); opacity: 0.3;" class="avatar" alt="Placeholder">
+                    {% endif %}
+                </div>
+
+                {% if dest %}
+                    <div class="user-name">{{ dest.display_name }}</div>
+                    <div class="status-badge connected">Connected</div>
+                {% else %}
+                    <div class="user-name" style="color:#555">Not Connected</div>
+                    <a href="/login/dest" class="btn">Connect Destination</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if source and dest %}
+        <div class="transfer-section">
+            <form action="/transfer" method="GET">
+                <div class="section-title">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 4V20M4 12H20" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+                    What to transfer?
+                </div>
+
+                <label class="custom-checkbox">
+                    <input type="checkbox" name="transfer_liked" value="true" checked>
+                    <span>Liked Songs (Favorites)</span>
+                </label>
+
+                <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center;">
+                    <div class="section-title" style="margin:0; font-size:1rem;">Select Playlists</div>
+                    <div style="font-size: 0.8rem;">
+                        <span onclick="toggleAll(true)" style="cursor:pointer; color:var(--primary); margin-right: 10px;">Select All</span>
+                        <span onclick="toggleAll(false)" style="cursor:pointer; color:#ff5555;">None</span>
+                    </div>
+                </div>
+
+                <div class="playlist-list">
+                    {% if source_playlists %}
+                        {% for pl in source_playlists %}
+                            <label class="custom-checkbox">
+                                <input type="checkbox" name="playlist" value="{{ pl.id }}" checked class="pl-checkbox">
+                                <span>{{ pl.name }}</span>
+                            </label>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align:center; color:#666; padding: 20px;">No playlists found on source account.</div>
+                    {% endif %}
+                </div>
+
+                <div style="text-align: center;">
+                    <button type="submit" class="btn btn-large">START TRANSFER</button>
+                </div>
+            </form>
+        </div>
+        {% else %}
+            <div style="margin-top: 50px;">
+                <button class="btn btn-large disabled" disabled>START TRANSFER</button>
+                <p style="color: var(--text-muted); margin-top: 15px;">Please connect both accounts to proceed.</p>
+            </div>
+        {% endif %}
+
+        
+        <div class="footer-links">
+            <a href="/logout" class="reset-link">Logout All Sessions</a>
+            <a href="/setup" class="reset-link">Change API Keys</a>
+        </div>
+
+        <!-- Setup Help Block -->
+        <div class="help-box">
+            <h3>⚠️ Troubleshooting</h3>
+            <p>If you get an <strong>INVALID_CLIENT</strong> error:</p>
+            <ol style="padding-left: 20px; line-height: 1.6;">
+                <li>Go to <a href="https://developer.spotify.com/dashboard" target="_blank" style="color:white; text-decoration: underline;">Spotify Dashboard</a> > Settings.</li>
+                <li>Add these exact Redirect URIs:</li>
+            </ol>
+            <div class="code-box">
+                <span>{{ request.host_url.replace('localhost', '127.0.0.1') }}callback/source</span>
+                <button class="copy-btn" 
+                        data-link="{{ request.host_url.replace('localhost', '127.0.0.1') }}callback/source"
+                        onclick="copyToClipboard(this)" 
+                        title="Copy to clipboard">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="code-box">
+                <span>{{ request.host_url.replace('localhost', '127.0.0.1') }}callback/dest</span>
+                <button class="copy-btn" 
+                        data-link="{{ request.host_url.replace('localhost', '127.0.0.1') }}callback/dest"
+                        onclick="copyToClipboard(this)" 
+                        title="Copy to clipboard">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+            </div>
+            <ol start="3" style="padding-left: 20px;"><li>Click <strong>Save</strong> at the bottom.</li></ol>
+        </div>
+    </div>
+
+    <script>
+        function toggleAll(check) {
+            const checkboxes = document.querySelectorAll('.pl-checkbox');
+            checkboxes.forEach(cb => cb.checked = check);
+        }
+
+        function copyToClipboard(btn) {
+            const text = btn.getAttribute('data-link');
+            navigator.clipboard.writeText(text).then(() => {
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1DB954" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+    </script>
+</body>
+</html>
